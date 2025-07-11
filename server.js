@@ -11,12 +11,11 @@ const PORT = 4000;
 app.use(express.static('public')); 
 
 io.on('connection', (socket) => {
-  console.log('a user connected:', socket.id);
+  console.log('A user connected:', socket.id);
 
   socket.on('disconnect', () => {
-    console.log('user disconnected:', socket.id);
+    console.log('A user disconnected:', socket.id);
   });
-
 });
 
 server.listen(PORT, () => {
