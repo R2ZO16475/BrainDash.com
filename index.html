@@ -1,24 +1,42 @@
-<html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BrainDash</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BrainDash - Learn and Play</title>
   <link rel="stylesheet" href="style.css" />
+  <script defer src="script.js"></script>
 </head>
 <body>
-  <div id="overlay">
-    <h1>🧠 BrainDash</h1>
-    <input type="text" id="nameInput" placeholder="Enter your name" />
-    <button onclick="startGame()">Start Game</button>
-  </div>
+  <div class="container">
+    <header>
+      <h1 class="logo">BrainDash</h1>
+      <p class="tagline">The Ultimate Multiplayer Learning Game</p>
+    </header>
 
-  <div id="hud" class="hidden">
-    <div id="stats">
-      <span id="playerName"></span>
-      <span>⚡ <span id="energy">100</span></span>
-      <span>💰 <span id="cash">0</span></span>
-      <span>⭐ <span id="xp">0</span></span>
-    </div>
-    <div id="questionBox" class="hidden">
-      <p id="q
+    <section class="auth">
+      <input id="playerName" type="text" placeholder="Enter your name" />
+      <input id="gameCode" type="text" placeholder="Enter game code to join" />
+      <button id="joinCreateBtn">Join or Create Game</button>
+    </section>
+
+    <canvas id="gameCanvas" width="600" height="450"></canvas>
+
+    <section id="gameUI" class="hidden">
+      <div class="hud">
+        <div id="playerStats"></div>
+        <button id="shopBtn">Open Shop</button>
+      </div>
+      <div id="shopModal" class="modal hidden">
+        <h2>Shop</h2>
+        <ul id="shopItems">
+          <li><button data-upgrade="cashMultiplier">Cash Multiplier</button></li>
+          <li><button data-upgrade="energyEfficiency">Energy Efficiency</button></li>
+          <li><button data-upgrade="xpBoost">XP Boost</button></li>
+        </ul>
+        <button id="closeShopBtn">Close Shop</button>
+      </div>
+    </section>
+  </div>
+</body>
+</html>
