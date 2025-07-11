@@ -1,93 +1,125 @@
+const startBtn = document.getElementById('startGameBtn');
 const playerNameInput = document.getElementById('playerName');
-const gameCodeInput = document.getElementById('gameCode');
-const joinCreateBtn = document.getElementById('joinCreateBtn');
+const gameScreen = document.getElementById('gameScreen');
+const setupScreen = document.getElementById('setupScreen');
 const gameCanvas = document.getElementById('gameCanvas');
 const ctx = gameCanvas.getContext('2d');
-const gameUI = document.getElementById('gameUI');
-const playerStats = document.getElementById('playerStats');
-const shopBtn = document.getElementById('shopBtn');
-const shopModal = document.getElementById('shopModal');
-const closeShopBtn = document.getElementById('closeShopBtn');
-const shopItems = document.getElementById('shopItems');
+const cashSpan = document.getElementById('cash');
+const energySpan = document.getElementById('energy');
+const xpSpan = document.getElementById('xp');
+const levelSpan = document.getElementById('level');
+const questionBtn = document.getElementById('questionBtn');
+const questionPopup = document.getElementById('questionPopup');
+const questionText = document.getElementById('questionText');
+const answerInput = document.getElementById('answerInput');
+const submitAnswerBtn = document.getElementById('submitAnswerBtn');
+const skipAnswerBtn = document.getElementById('skipAnswerBtn');
+const feedbackDiv = document.getElementById('feedback');
 
-let gameStarted = false;
+let gameWidth, gameHeight;
+
 let player = {
   name: '',
   cash: 0,
   energy: 100,
   xp: 0,
   level: 1,
-  position: { x: 5, y: 5 },
-  upgrades: {
-    cashMultiplier: 0,
-    energyEfficiency: 0,
-    xpBoost: 0
-  }
+  position: { x: 10, y: 7 },
+  kit: 'addition',
 };
 
-const TILE_SIZE = 30;
-const MAP_WIDTH = 20;
-const MAP_HEIGHT = 15;
+const TILE_SIZE = 40;
+const MAP_COLS = 20;
+const MAP_ROWS = 15;
 
-const keysPressed = {};
-let energyDrainInterval;
+let keysPressed = {};
 
-joinCreateBtn.addEventListener('click', () => {
+startBtn.addEventListener('click', () => {
   const name = playerNameInput.value.trim();
-  if (!name) {
-    alert('Please enter your name');
-    return;
-  }
+  if (!name) return alert('Enter your name!');
   player.name = name;
-  startGame();
+
+  const kitRadio = document.querySelector('input[name="kit"]:checked');
+  player.kit = kitRadio ? kitRadio.value : 'addition';
+
+  setupScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+
+  initCanvas();
+  drawGame();
+  updateHUD();
+
+  window.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
+  window.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
+
+  requestAnimationFrame(gameLoop);
 });
 
-function startGame() {
-  gameStarted = true;
-  document.querySelector('.auth').classList.add('hidden');
-  gameUI.classList.remove('hidden');
-  drawMap();
-  updateHUD();
-  energyDrainInterval = setInterval(drainEnergy, 300);
-  window.addEventListener('keydown', e => {
-    keysPressed[e.key.toLowerCase()] = true;
-  });
-  window.addEventListener('keyup', e => {
-    keysPressed[e.key.toLowerCase()] = false;
-  });
-  requestAnimationFrame(gameLoop);
+function initCanvas() {
+  gameCanvas.width = window.innerWidth;
+  gameCanvas.height = window.innerHeight - document.getElementById('hud').offsetHeight - document.getElementById('header').offsetHeight;
+  gameWidth = gameCanvas.width;
+  gameHeight = gameCanvas.height;
 }
 
-function drawMap() {
-  ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+window.addEventListener('resize', () => {
+  initCanvas();
+  drawGame();
+});
 
-  for (let y = 0; y < MAP_HEIGHT; y++) {
-    for (let x = 0; x < MAP_WIDTH; x++) {
-      ctx.fillStyle = '#222';
-      ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE - 1, TILE_SIZE - 1);
-    }
+function drawGame() {
+  ctx.clearRect(0, 0, gameWidth, gameHeight);
+
+  // Draw grid background
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, gameWidth, gameHeight);
+
+  ctx.strokeStyle = '#004f4f';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= MAP_COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * TILE_SIZE, 0);
+    ctx.lineTo(x * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= MAP_ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * TILE_SIZE);
+    ctx.lineTo(MAP_COLS * TILE_SIZE, y * TILE_SIZE);
+    ctx.stroke();
   }
 
+  const px = player.position.x * TILE_SIZE + TILE_SIZE / 2;
+  const py = player.position.y * TILE_SIZE + TILE_SIZE / 2;
+
   ctx.fillStyle = '#00ffd5';
-  ctx.fillRect(player.position.x * TILE_SIZE, player.position.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+  ctx.beginPath();
+  ctx.arc(px, py, TILE_SIZE / 2 - 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.arc(px - 10, py - 5, 5, 0, Math.PI * 2);
+  ctx.arc(px + 10, py - 5, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#00ffd5';
+  ctx.beginPath();
+  ctx.arc(px - 10, py - 5, 2, 0, Math.PI * 2);
+  ctx.arc(px + 10, py - 5, 2, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function updateHUD() {
-  playerStats.textContent = `Cash: $${player.cash} | Energy: ${player.energy} | XP: ${player.xp} | Level: ${player.level}`;
-}
-
-function drainEnergy() {
-  if (player.energy > 0) {
-    let drain = 1 - player.upgrades.energyEfficiency * 0.1;
-    player.energy = Math.max(0, player.energy - drain);
-    updateHUD();
-  }
+  cashSpan.textContent = `Cash: $${player.cash}`;
+  energySpan.textContent = `Energy: ${Math.floor(player.energy)}`;
+  xpSpan.textContent = `XP: ${player.xp}`;
+  levelSpan.textContent = `Level: ${player.level}`;
 }
 
 function gameLoop() {
-  if (!gameStarted) return;
   handleMovement();
-  drawMap();
+  drawGame();
   updateHUD();
   requestAnimationFrame(gameLoop);
 }
@@ -103,7 +135,7 @@ function handleMovement() {
     }
   }
   if (keysPressed['s'] || keysPressed['arrowdown']) {
-    if (player.position.y < MAP_HEIGHT - 1) {
+    if (player.position.y < MAP_ROWS - 1) {
       player.position.y++;
       moved = true;
     }
@@ -115,7 +147,7 @@ function handleMovement() {
     }
   }
   if (keysPressed['d'] || keysPressed['arrowright']) {
-    if (player.position.x < MAP_WIDTH - 1) {
+    if (player.position.x < MAP_COLS - 1) {
       player.position.x++;
       moved = true;
     }
@@ -125,36 +157,113 @@ function handleMovement() {
   }
 }
 
-shopBtn.addEventListener('click', () => {
-  shopModal.classList.remove('hidden');
-});
 
-closeShopBtn.addEventListener('click', () => {
-  shopModal.classList.add('hidden');
-});
-
-shopItems.addEventListener('click', (e) => {
-  if (e.target.tagName === 'BUTTON') {
-    const upgrade = e.target.dataset.upgrade;
-    buyUpgrade(upgrade);
-  }
-});
-
-function buyUpgrade(upgrade) {
-  const upgradeCosts = {
-    cashMultiplier: 50,
-    energyEfficiency: 50,
-    xpBoost: 50
-  };
-  const cost = upgradeCosts[upgrade] * (player.upgrades[upgrade] + 1);
-
-  if (player.cash < cost) {
-    alert('Not enough cash!');
+questionBtn.addEventListener('click', () => {
+  if (player.energy <= 0) {
+    alert("You don't have enough energy! Answer questions to restore it.");
     return;
   }
-  player.cash -= cost;
-  player.upgrades[upgrade]++;
-  alert(`Purchased upgrade: ${upgrade} Level ${player.upgrades[upgrade]}`);
+  generateQuestion();
+});
+
+submitAnswerBtn.addEventListener('click', () => {
+  checkAnswer();
+});
+
+skipAnswerBtn.addEventListener('click', () => {
+  hideQuestion();
+});
+
+let currentQuestion = null;
+let correctAnswer = null;
+
+function generateQuestion() {
+  const maxNum = 20;
+  let a = Math.floor(Math.random() * maxNum) + 1;
+  let b = Math.floor(Math.random() * maxNum) + 1;
+  let op = player.kit;
+
+  if (op === 'division') {
+    a = a * b; 
+  }
+
+  let questionStr;
+  switch (op) {
+    case 'addition':
+      questionStr = `${a} + ${b} = ?`;
+      correctAnswer = a + b;
+      break;
+    case 'subtraction':
+      if (b > a) [a, b] = [b, a]; 
+      questionStr = `${a} - ${b} = ?`;
+      correctAnswer = a - b;
+      break;
+    case 'multiplication':
+      questionStr = `${a} × ${b} = ?`;
+      correctAnswer = a * b;
+      break;
+    case 'division':
+      questionStr = `${a} ÷ ${b} = ?`;
+      correctAnswer = a / b;
+      break;
+  }
+
+  currentQuestion = questionStr;
+  questionText.textContent = questionStr;
+  answerInput.value = '';
+  feedbackDiv.textContent = '';
+  questionPopup.classList.remove('hidden');
+  answerInput.focus();
+}
+
+function checkAnswer() {
+  const answer = Number(answerInput.value.trim());
+  if (answer === correctAnswer) {
+    feedbackDiv.textContent = '✅ Correct!';
+    player.cash += 10 + player.upgrades?.cashMultiplier * 5 || 10;
+    player.energy = Math.min(100, player.energy + 10);
+    player.xp += 10 + player.upgrades?.xpBoost * 5 || 10;
+    levelUpCheck();
+    setTimeout(() => {
+      hideQuestion();
+    }, 1000);
+  } else {
+    feedbackDiv.textContent = '❌ Wrong!';
+    player.energy = Math.max(0, player.energy - 5);
+    setTimeout(() => {
+      hideQuestion();
+    }, 1000);
+  }
   updateHUD();
 }
+
+function hideQuestion() {
+  questionPopup.classList.add('hidden');
+  answerInput.value = '';
+  feedbackDiv.textContent = '';
+}
+
+function levelUpCheck() {
+  const XP_PER_LEVEL = 100;
+  if (player.xp >= XP_PER_LEVEL) {
+    player.level++;
+    player.xp -= XP_PER_LEVEL;
+    confetti();
+  }
+}
+
+function confetti() {
+  const count = 100;
+  for (let i = 0; i < count; i++) {
+    const x = Math.random() * gameCanvas.width;
+    const y = Math.random() * gameCanvas.height;
+    const size = Math.random() * 7 + 3;
+    const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
 
