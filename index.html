@@ -1,43 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" >
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BrainDash - Learn and Play</title>
+  <title>BrainDash - Mental Math Madness</title>
   <link rel="stylesheet" href="style.css" />
   <script defer src="script.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header>
+  <div id="gameContainer">
+    <header id="header">
       <h1 class="logo">BrainDash</h1>
-      <p class="tagline">The Ultimate Multiplayer Learning Game</p>
+      <p class="tagline">Mental Math Mastery, Multiplayer Style</p>
     </header>
 
-    <section class="auth">
-      <input id="playerName" type="text" placeholder="Enter your name" />
-      <input id="gameCode" type="text" placeholder="Enter game code to join" />
-      <button id="joinCreateBtn">Join or Create Game</button>
+    <section id="setupScreen" class="screen centered">
+      <input id="playerName" type="text" placeholder="Enter your name" autocomplete="off" />
+      
+      <div class="kit-select">
+        <p>Choose your Kit:</p>
+        <label><input type="radio" name="kit" value="addition" checked /> Addition</label>
+        <label><input type="radio" name="kit" value="subtraction" /> Subtraction</label>
+        <label><input type="radio" name="kit" value="multiplication" /> Multiplication</label>
+        <label><input type="radio" name="kit" value="division" /> Division</label>
+      </div>
+
+      <button id="startGameBtn">Start Game</button>
     </section>
 
-    <canvas id="gameCanvas" width="600" height="450"></canvas>
+    <section id="gameScreen" class="screen hidden">
+      <canvas id="gameCanvas"></canvas>
 
-    <section id="gameUI" class="hidden">
-      <div class="hud">
-        <div id="playerStats"></div>
-        <button id="shopBtn">Open Shop</button>
+      <div id="hud">
+        <div id="stats">
+          <span id="cash">Cash: $0</span>
+          <span id="energy">Energy: 100</span>
+          <span id="xp">XP: 0</span>
+          <span id="level">Level: 1</span>
+        </div>
+
+        <button id="questionBtn">Answer Question</button>
       </div>
-      <div id="shopModal" class="modal hidden">
-        <h2>Shop</h2>
-        <ul id="shopItems">
-          <li><button data-upgrade="cashMultiplier">Cash Multiplier</button></li>
-          <li><button data-upgrade="energyEfficiency">Energy Efficiency</button></li>
-          <li><button data-upgrade="xpBoost">XP Boost</button></li>
-        </ul>
-        <button id="closeShopBtn">Close Shop</button>
+
+      <div id="questionPopup" class="hidden">
+        <p id="questionText"></p>
+        <input id="answerInput" type="number" autocomplete="off" />
+        <div id="feedback"></div>
+        <button id="submitAnswerBtn">Submit</button>
+        <button id="skipAnswerBtn">Skip</button>
       </div>
     </section>
   </div>
 </body>
 </html>
-
