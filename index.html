@@ -3,34 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BrainDash - Mental Math Madness</title>
+  <title>BrainDash</title>
   <link rel="stylesheet" href="style.css" />
   <script defer src="script.js"></script>
 </head>
 <body>
-  <div id="gameContainer">
-    <header id="header">
+  <div id="app">
+    <header>
       <h1 class="logo">BrainDash</h1>
-      <p class="tagline">Mental Math Mastery, Multiplayer Style</p>
+      <p class="subtitle">Mental Math Meets Fun</p>
     </header>
 
-    <section id="setupScreen" class="screen centered">
-      <input id="playerName" type="text" placeholder="Enter your name" autocomplete="off" />
-      
-      <div class="kit-select">
-        <p>Choose your Kit:</p>
-        <label><input type="radio" name="kit" value="addition" checked /> Addition</label>
-        <label><input type="radio" name="kit" value="subtraction" /> Subtraction</label>
-        <label><input type="radio" name="kit" value="multiplication" /> Multiplication</label>
-        <label><input type="radio" name="kit" value="division" /> Division</label>
-      </div>
-
-      <button id="startGameBtn">Start Game</button>
+    <section id="lobby">
+      <input id="playerName" type="text" placeholder="Your Name" />
+      <button id="startBtn">Start Game</button>
     </section>
 
-    <section id="gameScreen" class="screen hidden">
-      <canvas id="gameCanvas"></canvas>
-
+    <section id="game" class="hidden">
       <div id="hud">
         <div id="stats">
           <span id="cash">Cash: $0</span>
@@ -38,9 +27,11 @@
           <span id="xp">XP: 0</span>
           <span id="level">Level: 1</span>
         </div>
-
+        <button id="shopBtn">Shop</button>
         <button id="questionBtn">Answer Question</button>
       </div>
+
+      <canvas id="gameCanvas"></canvas>
 
       <div id="questionPopup" class="hidden">
         <p id="questionText"></p>
@@ -49,7 +40,14 @@
         <button id="submitAnswerBtn">Submit</button>
         <button id="skipAnswerBtn">Skip</button>
       </div>
+
+      <div id="shopPopup" class="hidden">
+        <h2>Shop</h2>
+        <div id="shopItems"></div>
+        <button id="closeShopBtn">Close</button>
+      </div>
     </section>
   </div>
 </body>
 </html>
+
