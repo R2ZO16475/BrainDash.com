@@ -1,22 +1,24 @@
-const startBtn = document.getElementById('startGameBtn');
+const startBtn = document.getElementById('startBtn');
 const playerNameInput = document.getElementById('playerName');
-const gameScreen = document.getElementById('gameScreen');
-const setupScreen = document.getElementById('setupScreen');
-const gameCanvas = document.getElementById('gameCanvas');
-const ctx = gameCanvas.getContext('2d');
+const lobby = document.getElementById('lobby');
+const gameSection = document.getElementById('game');
 const cashSpan = document.getElementById('cash');
 const energySpan = document.getElementById('energy');
 const xpSpan = document.getElementById('xp');
 const levelSpan = document.getElementById('level');
+const shopBtn = document.getElementById('shopBtn');
 const questionBtn = document.getElementById('questionBtn');
 const questionPopup = document.getElementById('questionPopup');
 const questionText = document.getElementById('questionText');
 const answerInput = document.getElementById('answerInput');
+const feedback = document.getElementById('feedback');
 const submitAnswerBtn = document.getElementById('submitAnswerBtn');
 const skipAnswerBtn = document.getElementById('skipAnswerBtn');
-const feedbackDiv = document.getElementById('feedback');
-
-let gameWidth, gameHeight;
+const shopPopup = document.getElementById('shopPopup');
+const shopItemsDiv = document.getElementById('shopItems');
+const closeShopBtn = document.getElementById('closeShopBtn');
+const gameCanvas = document.getElementById('gameCanvas');
+const ctx = gameCanvas.getContext('2d');
 
 let player = {
   name: '',
@@ -24,77 +26,70 @@ let player = {
   energy: 100,
   xp: 0,
   level: 1,
-  position: { x: 10, y: 7 },
-  kit: 'addition',
+  position: { x: 5, y: 5 },
+  cashPerCorrect: 10,
+  energyDrainRate: 1,
+  xpPerCorrect: 10,
+  upgrades: {
+    cashMultiplier: 0,
+    energyDrainResistance: 0,
+    xpBoost: 0,
+  }
 };
 
-const TILE_SIZE = 40;
-const MAP_COLS = 20;
-const MAP_ROWS = 15;
+const TILE_SIZE = 50;
+const MAP_WIDTH = 15;
+const MAP_HEIGHT = 9;
+gameCanvas.width = TILE_SIZE * MAP_WIDTH;
+gameCanvas.height = TILE_SIZE * MAP_HEIGHT;
 
 let keysPressed = {};
+let questionActive = false;
+let currentQuestion = null;
+let correctAnswer = null;
 
 startBtn.addEventListener('click', () => {
   const name = playerNameInput.value.trim();
-  if (!name) return alert('Enter your name!');
+  if (!name) {
+    alert('Please enter your name.');
+    return;
+  }
   player.name = name;
-
-  const kitRadio = document.querySelector('input[name="kit"]:checked');
-  player.kit = kitRadio ? kitRadio.value : 'addition';
-
-  setupScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
-
-  initCanvas();
+  lobby.classList.add('hidden');
+  gameSection.classList.remove('hidden');
   drawGame();
-  updateHUD();
-
-  window.addEventListener('keydown', (e) => keysPressed[e.key.toLowerCase()] = true);
-  window.addEventListener('keyup', (e) => keysPressed[e.key.toLowerCase()] = false);
-
-  requestAnimationFrame(gameLoop);
-});
-
-function initCanvas() {
-  gameCanvas.width = window.innerWidth;
-  gameCanvas.height = window.innerHeight - document.getElementById('hud').offsetHeight - document.getElementById('header').offsetHeight;
-  gameWidth = gameCanvas.width;
-  gameHeight = gameCanvas.height;
-}
-
-window.addEventListener('resize', () => {
-  initCanvas();
-  drawGame();
+  window.requestAnimationFrame(gameLoop);
 });
 
 function drawGame() {
-  ctx.clearRect(0, 0, gameWidth, gameHeight);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
 
-  // Draw grid background
-  ctx.fillStyle = '#111';
-  ctx.fillRect(0, 0, gameWidth, gameHeight);
-
-  ctx.strokeStyle = '#004f4f';
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= MAP_COLS; x++) {
+  ctx.strokeStyle = '#ec2f4b';
+  ctx.lineWidth = 2;
+  for (let x = 0; x <= MAP_WIDTH; x++) {
     ctx.beginPath();
     ctx.moveTo(x * TILE_SIZE, 0);
-    ctx.lineTo(x * TILE_SIZE, MAP_ROWS * TILE_SIZE);
+    ctx.lineTo(x * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
     ctx.stroke();
   }
-  for (let y = 0; y <= MAP_ROWS; y++) {
+  for (let y = 0; y <= MAP_HEIGHT; y++) {
     ctx.beginPath();
     ctx.moveTo(0, y * TILE_SIZE);
-    ctx.lineTo(MAP_COLS * TILE_SIZE, y * TILE_SIZE);
+    ctx.lineTo(MAP_WIDTH * TILE_SIZE, y * TILE_SIZE);
     ctx.stroke();
   }
 
-  const px = player.position.x * TILE_SIZE + TILE_SIZE / 2;
-  const py = player.position.y * TILE_SIZE + TILE_SIZE / 2;
+  const px = player.position.x * TILE_SIZE + TILE_SIZE/2;
+  const py = player.position.y * TILE_SIZE + TILE_SIZE/2;
+  const radius = 12;
 
-  ctx.fillStyle = '#00ffd5';
-  ctx.beginPath();
-  ctx.arc(px, py, TILE_SIZE / 2 - 4, 0, Math.PI * 2);
+  const grad = ctx.createRadialGradient(px, py, 10, px, py, radius);
+  grad.addColorStop(0, '#fff');
+  grad.addColorStop(1, '#ec2f4b');
+
+  ctx.fillStyle = grad;
+  roundRect(ctx, player.position.x * TILE_SIZE + 6, player.position.y * TILE_SIZE + 6, TILE_SIZE - 12, TILE_SIZE - 12, radius);
   ctx.fill();
 
   ctx.fillStyle = '#000';
@@ -103,18 +98,25 @@ function drawGame() {
   ctx.arc(px + 10, py - 5, 5, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#00ffd5';
+  ctx.fillStyle = '#ec2f4b';
   ctx.beginPath();
   ctx.arc(px - 10, py - 5, 2, 0, Math.PI * 2);
   ctx.arc(px + 10, py - 5, 2, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function updateHUD() {
-  cashSpan.textContent = `Cash: $${player.cash}`;
-  energySpan.textContent = `Energy: ${Math.floor(player.energy)}`;
-  xpSpan.textContent = `XP: ${player.xp}`;
-  levelSpan.textContent = `Level: ${player.level}`;
+function roundRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
 }
 
 function gameLoop() {
@@ -125,9 +127,11 @@ function gameLoop() {
 }
 
 function handleMovement() {
+  if (questionActive) return;
   if (player.energy <= 0) return;
 
   let moved = false;
+
   if (keysPressed['w'] || keysPressed['arrowup']) {
     if (player.position.y > 0) {
       player.position.y--;
@@ -135,7 +139,7 @@ function handleMovement() {
     }
   }
   if (keysPressed['s'] || keysPressed['arrowdown']) {
-    if (player.position.y < MAP_ROWS - 1) {
+    if (player.position.y < MAP_HEIGHT - 1) {
       player.position.y++;
       moved = true;
     }
@@ -147,123 +151,206 @@ function handleMovement() {
     }
   }
   if (keysPressed['d'] || keysPressed['arrowright']) {
-    if (player.position.x < MAP_COLS - 1) {
+    if (player.position.x < MAP_WIDTH - 1) {
       player.position.x++;
       moved = true;
     }
   }
+
   if (moved) {
-    player.energy = Math.max(0, player.energy - 1);
+    player.energy = Math.max(0, player.energy - player.energyDrainRate);
   }
 }
 
+window.addEventListener('keydown', e => {
+  keysPressed[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener('keyup', e => {
+  keysPressed[e.key.toLowerCase()] = false;
+});
+
+function updateHUD() {
+  cashSpan.textContent = `Cash: $${player.cash}`;
+  energySpan.textContent = `Energy: ${Math.floor(player.energy)}`;
+  xpSpan.textContent = `XP: ${player.xp}`;
+  levelSpan.textContent = `Level: ${player.level}`;
+}
 
 questionBtn.addEventListener('click', () => {
+  if (questionActive) return;
   if (player.energy <= 0) {
-    alert("You don't have enough energy! Answer questions to restore it.");
+    alert("You don't have energy! Answer questions to restore it.");
     return;
   }
   generateQuestion();
 });
 
-submitAnswerBtn.addEventListener('click', () => {
-  checkAnswer();
-});
-
+submitAnswerBtn.addEventListener('click', checkAnswer);
 skipAnswerBtn.addEventListener('click', () => {
-  hideQuestion();
+  questionPopup.classList.add('hidden');
+  questionActive = false;
+  feedback.textContent = '';
+  answerInput.value = '';
 });
-
-let currentQuestion = null;
-let correctAnswer = null;
 
 function generateQuestion() {
-  const maxNum = 20;
-  let a = Math.floor(Math.random() * maxNum) + 1;
-  let b = Math.floor(Math.random() * maxNum) + 1;
-  let op = player.kit;
+  questionActive = true;
+  const max = 20;
+  const a = Math.floor(Math.random() * max) + 1;
+  const b = Math.floor(Math.random() * max) + 1;
 
-  if (op === 'division') {
-    a = a * b; 
-  }
+  const ops = ['+', '-', '×', '÷'];
+  const op = ops[Math.floor(Math.random() * ops.length)];
 
-  let questionStr;
-  switch (op) {
-    case 'addition':
+  let questionStr, answer;
+
+  switch(op) {
+    case '+':
       questionStr = `${a} + ${b} = ?`;
-      correctAnswer = a + b;
+      answer = a + b;
       break;
-    case 'subtraction':
-      if (b > a) [a, b] = [b, a]; 
+    case '-':
+      if (b > a) [a, b] = [b, a];
       questionStr = `${a} - ${b} = ?`;
-      correctAnswer = a - b;
+      answer = a - b;
       break;
-    case 'multiplication':
+    case '×':
       questionStr = `${a} × ${b} = ?`;
-      correctAnswer = a * b;
+      answer = a * b;
       break;
-    case 'division':
-      questionStr = `${a} ÷ ${b} = ?`;
-      correctAnswer = a / b;
+    case '÷':
+      const dividend = a * b;
+      questionStr = `${dividend} ÷ ${b} = ?`;
+      answer = dividend / b;
       break;
   }
-
   currentQuestion = questionStr;
+  correctAnswer = answer;
   questionText.textContent = questionStr;
-  answerInput.value = '';
-  feedbackDiv.textContent = '';
   questionPopup.classList.remove('hidden');
+  answerInput.value = '';
+  feedback.textContent = '';
   answerInput.focus();
 }
 
 function checkAnswer() {
-  const answer = Number(answerInput.value.trim());
-  if (answer === correctAnswer) {
-    feedbackDiv.textContent = '✅ Correct!';
-    player.cash += 10 + player.upgrades?.cashMultiplier * 5 || 10;
-    player.energy = Math.min(100, player.energy + 10);
-    player.xp += 10 + player.upgrades?.xpBoost * 5 || 10;
-    levelUpCheck();
-    setTimeout(() => {
-      hideQuestion();
-    }, 1000);
-  } else {
-    feedbackDiv.textContent = '❌ Wrong!';
-    player.energy = Math.max(0, player.energy - 5);
-    setTimeout(() => {
-      hideQuestion();
-    }, 1000);
+  const val = Number(answerInput.value);
+  if (isNaN(val)) {
+    feedback.textContent = 'Please enter a number';
+    return;
   }
-  updateHUD();
-}
-
-function hideQuestion() {
-  questionPopup.classList.add('hidden');
+  if (val === correctAnswer) {
+    feedback.textContent = '✅ Correct!';
+    player.cash += player.cashPerCorrect + player.upgrades.cashMultiplier * 5;
+    player.energy = Math.min(100, player.energy + 10 + player.upgrades.energyDrainResistance * 2);
+    player.xp += player.xpPerCorrect + player.upgrades.xpBoost * 5;
+    checkLevelUp();
+  } else {
+    feedback.textContent = '❌ Wrong!';
+    player.energy = Math.max(0, player.energy - 5);
+  }
   answerInput.value = '';
-  feedbackDiv.textContent = '';
+  setTimeout(() => {
+    questionPopup.classList.add('hidden');
+    questionActive = false;
+    feedback.textContent = '';
+  }, 1200);
 }
 
-function levelUpCheck() {
-  const XP_PER_LEVEL = 100;
-  if (player.xp >= XP_PER_LEVEL) {
+function checkLevelUp() {
+  if (player.xp >= 100) {
     player.level++;
-    player.xp -= XP_PER_LEVEL;
+    player.xp = 0;
     confetti();
   }
 }
 
 function confetti() {
-  const count = 100;
-  for (let i = 0; i < count; i++) {
-    const x = Math.random() * gameCanvas.width;
-    const y = Math.random() * gameCanvas.height;
-    const size = Math.random() * 7 + 3;
-    const color = `hsl(${Math.random() * 360}, 100%, 60%)`;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  alert('🎉 Level Up! 🎉');
 }
+
+shopBtn.addEventListener('click', () => {
+  buildShop();
+  shopPopup.classList.remove('hidden');
+});
+
+closeShopBtn.addEventListener('click', () => {
+  shopPopup.classList.add('hidden');
+});
+
+function buildShop() {
+  shopItemsDiv.innerHTML = '';
+  const upgrades = [
+    {
+      id: 'cashMultiplier',
+      name: 'Cash Per Answer +5',
+      cost: 50 + player.upgrades.cashMultiplier * 25,
+      description: 'Earn more cash per correct answer'
+    },
+    {
+      id: 'energyDrainResistance',
+      name: 'Energy Drain Slower',
+      cost: 60 + player.upgrades.energyDrainResistance * 30,
+      description: 'Energy drains more slowly'
+    },
+    {
+      id: 'xpBoost',
+      name: 'XP Boost +5',
+      cost: 70 + player.upgrades.xpBoost * 35,
+      description: 'Gain more XP per correct answer'
+    },
+  ];
+
+  upgrades.forEach(upg => {
+    const div = document.createElement('div');
+    div.className = 'shopItem';
+    div.innerHTML = `<div>
+      <div>${upg.name}</div>
+      <small>${upg.description}</small>
+      <div>Cost: $${upg.cost}</div>
+    </div>
+    <button data-id="${upg.id}">Buy</button>`;
+    shopItemsDiv.appendChild(div);
+  });
+
+  shopItemsDiv.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const id = e.target.dataset.id;
+      buyUpgrade(id);
+    });
+  });
+}
+
+function buyUpgrade(id) {
+  let cost, level;
+  switch(id) {
+    case 'cashMultiplier':
+      cost = 50 + player.upgrades.cashMultiplier * 25;
+      if (player.cash >= cost) {
+        player.cash -= cost;
+        player.upgrades.cashMultiplier++;
+      }
+      break;
+    case 'energyDrainResistance':
+      cost = 60 + player.upgrades.energyDrainResistance * 30;
+      if (player.cash >= cost) {
+        player.cash -= cost;
+        player.upgrades.energyDrainResistance++;
+        player.energyDrainRate = Math.max(0.1, player.energyDrainRate - 0.1);
+      }
+      break;
+    case 'xpBoost':
+      cost = 70 + player.upgrades.xpBoost * 35;
+      if (player.cash >= cost) {
+        player.cash -= cost;
+        player.upgrades.xpBoost++;
+      }
+      break;
+  }
+  buildShop();
+  updateHUD();
+}
+
 
 
